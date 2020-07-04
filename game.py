@@ -56,6 +56,8 @@ def box_legal(i, j):
 
 # check if there is a pedina of that color
 def box_occupied(i, j, color, board):
+    # TODO: fare una classe per poter controllare anche la dama in questo modo
+    return board[i][j] == color
 
 def ask_input(string):
     while True:
@@ -73,6 +75,16 @@ def is_int(string):
         return True
     except ValueError:
         return False
+
+def ask_box(string):
+    str_i, str_j = ask_input(string)
+    while (not is_int(str_i)) and (not is_int(str_j)):
+        print("Wrong input, correct usage: <int, int>")
+        continue
+
+    i = int(str_i)
+    j = int(str_j)
+    return i, j
 
 # --------------------dama rules----------------------------
 
@@ -95,16 +107,12 @@ def win_condition(color, board):
     return True
 
 # returns list of legal moves from a position
-#  if there's no pedina in there returns empty list
+# if there's no pedina in there returns empty list
 # ASSUMPTION: (i, j) is a board position
 def legal_moves(i, j, board):
     legal_moves = []
 
-    # # just to clarify, not necessary
-    # if board[i][j] == EMPTY:
-    #     return legal_moves
-
-    is_dama = (board[i][j] == DAMAW) or (board[i][j] == DAMAB)
+    is_dama = board[i][j] == DAMAW or board[i][j] == DAMAB
 
     if board[i][j] == WHITE or is_dama:
         if box_legal(i - 1, j - 1) and board[i - 1][j - 1] == EMPTY:
@@ -129,21 +137,32 @@ def forced_moves(i, j, board):
 
     if board[i][j] == WHITE:
         if box_legal(i - 1, j - 1) and board[i - 1][j - 1] == BLACK:
-            if board[i - 2][j - 2] == EMPTY:
+            if box_legal(i - 2, j - 2) and board[i - 2][j - 2] == EMPTY:
                 forced_moves.append((i - 2, j - 2))
         if box_legal(i - 1, j + 1) and board[i - 1][j + 1] == BLACK:
-            if board[i - 2][j + 2] == EMPTY:
+            if box_legal(i - 2, j + 2) and board[i - 2][j + 2] == EMPTY:
                 forced_moves.append((i - 2, j + 2))
 
     if board[i][j] == BLACK:
         if box_legal(i + 1, j - 1) and board[i + 1][j - 1] == WHITE:
-            if board[i + 2][j - 2] == EMPTY:
+            if box_legal(i + 2, j - 2) and board[i + 2][j - 2] == EMPTY:
                 forced_moves.append((i + 2, j - 2))
         if box_legal(i + 1, j + 1) and board[i + 1][j + 1] == WHITE:
-            if board[i + 2][j + 2] == EMPTY:
+            if box_legal(i + 2, j + 2) and board[i + 2][j + 2] == EMPTY:
                 forced_moves.append((i + 2, j + 2))
 
     return forced_moves
+
+def forced_board(color, board):
+    all_forced_moves = []
+
+    for i in range(SIZE):
+        for j in range(SIZE):
+            if board[i][j] == color and forced_moves(i, j, board):
+                all_forced_moves.append((i, j))
+
+    return all_forced_moves
+
 
 # removes the eaten pedina between two positions
 def eat_pedina(i, j, end_i, end_j, board):
@@ -152,21 +171,19 @@ def eat_pedina(i, j, end_i, end_j, board):
 
     board[delete_i][delete_j] = EMPTY
 
-# changes the board moving a pedina
+# changes the board moving a pedina.
 # if and only if (end_i, end_j) are legal_moves
-# if there's a forced move to do and it's not end_i, end_j)
-# then it is an illegal move
-# CONTROLLI RIDONDANTI?
+# if there's a forced move to do and it's not (end_i, end_j) it is an illegal move
 def move(i, j, end_i, end_j, board):
-    # check if is legal board position
-    if not box_legal(i, j):
-        print("Position out of the board")
-        return False
+    # # check if is legal board position
+    # if not box_legal(i, j):
+    #     print("Position out of the board")
+    #     return False
 
-    # check if there's a pedina
-    if board[i][j] == EMPTY:
-        print("This bitch is empty yeet")
-        return False
+    # # check if there's a pedina
+    # if board[i][j] == EMPTY:
+    #     print("This bitch is empty yeet")
+    #     return False
 
     # check if is legal board position
     if not box_legal(end_i, end_j):
@@ -184,21 +201,21 @@ def move(i, j, end_i, end_j, board):
     # there's a forced move but it's not the selected one
     if f_moves:
         if not ((end_i, end_j) in f_moves):
-            print("no3")
+            print("Not a forced move")
             return False
         else:
             eat_pedina(i, j, end_i, end_j, board)
     # there's a legal move but it's not the selected one
     elif l_moves:
         if not ((end_i, end_j) in l_moves):
-            print("no4")
+            print("Not a legal move")
             return False
 
     board[end_i][end_j] = board[i][j]
     board[i][j] = EMPTY
     return True
 
-# TODO: add rules for draw 
+# TODO: add rules for draw
 
 
 # -----------------main operations-------------------------
@@ -210,34 +227,62 @@ def main():
     start_board(board)
     print_board(board)
 
-    color = WHITE
-    print("You are the whites")
+    player_color = WHITE
+    print("You are: " + player_color)
+    # game loop
     while True:
         # ask for pedina to move
-        str_i, str_j = ask_input("Enter box location: ")
-        if (not is_int(str_i)) and (not is_int(str_j)):
-            print("Wrong input, correct usage: <int, int>")
-            continue
-        # cast input
-        i = int(str_i)
-        j = int(str_j)
+        i, j = ask_box("Enter box location: ")
 
-        if not (box_legal(i, j, board) and box_occupied(i, j, color, board)):
+        # TODO: if does not check for damas, only normal pedinas for now
+        if not (box_legal(i, j) and box_occupied(i, j, player_color, board)):
             print("Not a legal position")
             continue
 
+        # check if there are moves to do first
+        all_forced_m = forced_board(player_color, board)
+        if all_forced_m and not((i,j) in all_forced_m):
+            print("There are forced moves to do first: ", all_forced_m)
+            continue
 
-    # ask for input from user. It returns string
-    # str_i, str_j = ask_input("Enter box location: ")
-    # str_end_i, str_end_j = ask_input("Enter destination box: ")
+        # if there are no possible actions from that position
+        forced_m = forced_moves(i, j, board)
+        legal_m = legal_moves(i, j, board)
+        if (not forced_m) and (not legal_m):
+            print("No possible actions from", i, j)
+            continue
 
-    # # casting input data
-    # # TODO: fare un try per il controllo dell'input
-    # i = int(str_i)
-    # j = int(str_j)
+        # destination move loop
+        while True:
+            # ask for destination box
+            end_i, end_j = ask_box("Enter destination box: ")
 
-    # end_i = int(str_end_i)
-    # end_j = int(str_end_j)
+            if not move(i, j, end_i, end_j, board):
+                continue
+
+            print_board(board)
+
+            # if a forced move was made search for others
+            if forced_m:
+                next_forced_m = forced_moves(end_i, end_j, board)
+                if next_forced_m:
+                    print("There are still forced moves to do:", next_forced_m)
+                    i = end_i
+                    j = end_j
+                    continue
+            # end destination move loop
+            break
+
+        if win_condition(player_color, board):
+            print("Player " + player_color + "wins!")
+            break
+
+        if player_color == WHITE:
+            player_color = BLACK
+        else:
+            player_color = WHITE
+
+        print("You are: " + player_color)
 
     # print(win_condition(WHITE, board))
 
@@ -248,7 +293,7 @@ def main():
     # print(move(5,1,4,2,board))
     # move(i, j, end_i, end_j, board)
 
-    print_board(board)
+    # print_board(board)
 
 if __name__ == "__main__":
     main()
