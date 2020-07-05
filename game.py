@@ -112,59 +112,137 @@ def win_condition(color, board):
 # if there's no pedina in there returns empty list
 # ASSUMPTION: (i, j) is a board position
 def legal_moves(i, j, board):
-    legal_moves = []
+    legal_m = []
 
     is_dama = board[i][j] == DAMAW or board[i][j] == DAMAB
 
     if board[i][j] == WHITE or is_dama:
         if box_legal(i - 1, j - 1) and board[i - 1][j - 1] == EMPTY:
-            legal_moves.append((i - 1, j - 1))
+            legal_m.append((i - 1, j - 1))
         if box_legal(i - 1, j + 1) and board[i - 1][j + 1] == EMPTY:
-            legal_moves.append((i - 1, j + 1))
+            legal_m.append((i - 1, j + 1))
 
     if board[i][j] == BLACK or is_dama:
         if box_legal(i + 1, j - 1) and board[i + 1][j - 1] == EMPTY:
-            legal_moves.append((i + 1, j - 1))
+            legal_m.append((i + 1, j - 1))
         if box_legal(i + 1, j + 1) and board[i + 1][j + 1] == EMPTY:
-            legal_moves.append((i + 1, j + 1))
+            legal_m.append((i + 1, j + 1))
 
-    return legal_moves
+    return legal_m
 
+# TODO: non è corretta. Devo calcolare la mossa che mi dà il massimo path
+# al momento mi dà la mossa che mi porta a più scelte
+def priority_forced_move(forced_m, board):
+    max_len = -1
+    best_m = forced_m[0]
+
+    for (i, j) in forced_m:
+        next_forced_m = forced_moves(i, j, board)
+        if max_len < len(next_forced_m):
+            max_len = len(next_forced_m)
+            best_m = (i, j)
+
+    return [best_m]
+
+# def longest_pedina_eat(x, y, board):
+#     moves = forced_moves(x, y, board)
+
+#     if not moves:
+#         return 0
+
+#     max_path = -1
+#     for (i, j) in moves:
+#         max_path = max(1 + longest_pedina_eat(i, j, board), max_path)
+#     return max_path
 
 # tells if a pedina must do a certain move (eat)
 # returns list of forced moves
 # ASSUMPTION: (i, j) is a board position
 def forced_moves(i, j, board):
-    forced_moves = []
+    f_m = []
 
     if board[i][j] == WHITE:
         if box_legal(i - 1, j - 1) and board[i - 1][j - 1] == BLACK:
             if box_legal(i - 2, j - 2) and board[i - 2][j - 2] == EMPTY:
-                forced_moves.append((i - 2, j - 2))
+                f_m.append((i - 2, j - 2))
         if box_legal(i - 1, j + 1) and board[i - 1][j + 1] == BLACK:
             if box_legal(i - 2, j + 2) and board[i - 2][j + 2] == EMPTY:
-                forced_moves.append((i - 2, j + 2))
+                f_m.append((i - 2, j + 2))
 
     if board[i][j] == BLACK:
         if box_legal(i + 1, j - 1) and board[i + 1][j - 1] == WHITE:
             if box_legal(i + 2, j - 2) and board[i + 2][j - 2] == EMPTY:
-                forced_moves.append((i + 2, j - 2))
+                f_m.append((i + 2, j - 2))
         if box_legal(i + 1, j + 1) and board[i + 1][j + 1] == WHITE:
             if box_legal(i + 2, j + 2) and board[i + 2][j + 2] == EMPTY:
-                forced_moves.append((i + 2, j + 2))
+                f_m.append((i + 2, j + 2))
 
-    return forced_moves
+    if len(f_m) > 1:
+        f_m = priority_forced_move(f_m, board)
 
-def forced_board(color, board):
-    all_forced_moves = []
+    return f_m
+
+def board_forced_moves(color, board):
+    all_f_m = []
 
     for i in range(SIZE):
         for j in range(SIZE):
             if board[i][j] == color and forced_moves(i, j, board):
-                all_forced_moves.append((i, j))
+                all_f_m.append((i, j))
 
-    return all_forced_moves
+    if len(all_f_m) > 1:
+        all_f_m = priority_forced_move(all_f_m, board)
 
+    return all_f_m
+
+def dama_eat_moves(i, j, dama, board):
+    enemy_color = WHITE
+    enemy_dama = DAMAW
+
+    if dama == DAMAW:
+        enemy_color = BLACK
+        enemy_dama = DAMAB
+
+    dama_m = []
+
+    if board[i][j] == dama:
+        # NO
+        if box_legal(i - 1, j - 1) and (board[i - 1][j - 1] == enemy_color or board[i - 1][j - 1] == enemy_dama):
+            if box_legal(i - 2, j - 2) and board[i - 2][j - 2] == EMPTY:
+                dama_m.append((i - 2, j - 2))
+        # NE
+        if box_legal(i - 1, j + 1) and (board[i - 1][j + 1] == enemy_color or board[i - 1][j + 1] == enemy_dama):
+            if box_legal(i - 2, j + 2) and board[i - 2][j + 2] == EMPTY:
+                dama_m.append((i - 2, j + 2))
+        # SO
+        if box_legal(i + 1, j - 1) and (board[i + 1][j - 1] == enemy_color or board[i + 1][j - 1] == enemy_dama):
+            if box_legal(i + 2, j - 2) and board[i + 2][j - 2] == EMPTY:
+                dama_m.append((i + 2, j - 2))
+        # SE
+        if box_legal(i + 1, j + 1) and (board[i + 1][j + 1] == enemy_color or board[i + 1][j + 1] == enemy_dama):
+            if box_legal(i + 2, j + 2) and board[i + 2][j + 2] == EMPTY:
+                dama_m.append((i + 2, j + 2))
+
+    max_path = 0
+    if dama_m > 0:
+        max_path = longest_dama_eat(dama_m, dama, board)
+
+    # TODO: confrontare max_path della dama con quella di una qualsiasi pedina
+    # all'inizio del turno per determinare chi è obbligato a mangiare
+    # seguire l'ordinamento scritto sotto
+
+    return dama_m
+
+def longest_dama_eat(x, y, dama, board):
+    moves = dama_eat_moves(x, y, dama, board)
+
+    if not moves:
+        return 0
+
+    max_path = -1
+    for (i, j) in moves:
+        max_path = max(1 + longest_dama_eat(i, j, dama, board), max_path)
+    return max_path
 
 # removes the eaten pedina between two positions
 def eat_pedina(i, j, end_i, end_j, board):
@@ -192,14 +270,14 @@ def move(i, j, end_i, end_j, board):
 
     # there's a forced move but it's not the selected one
     if f_moves:
-        if not ((end_i, end_j) in f_moves):
+        if (end_i, end_j) not in f_moves:
             print("There are forced moves to do: ", f_moves)
             return False
         else:
             eat_pedina(i, j, end_i, end_j, board)
     # there's a legal move but it's not the selected one
     elif l_moves:
-        if not ((end_i, end_j) in l_moves):
+        if (end_i, end_j) not in l_moves:
             print("Not a legal move")
             return False
 
@@ -207,24 +285,25 @@ def move(i, j, end_i, end_j, board):
     board[i][j] = EMPTY
     return True
 
-# TODO:
-# Avendo più possibilità di presa si debbono rispettare obbligatoriamente 
+# TODO: ORDINAMENTO
+# Avendo più possibilità di presa si debbono rispettare obbligatoriamente
 # nell'ordine le seguenti priorità:
-#     è obbligatorio mangiare dove ci sono più pezzi;
-#     a parità di pezzi da prendere, tra pedina e dama si è obbligati a mangiare la dama;
-#       inoltre se si può optare tra il mangiare di dama o di pedina è obbligatorio mangiare con la dama;
-#     la dama sceglie la presa dove si mangiano più dame;
-#     a parità  di condizioni si mangia dove s'incontra prima la dama avversaria.
+#     # è obbligatorio mangiare dove ci sono più pezzi;
+#     # a parità di pezzi da prendere, tra pedina e dama si è obbligati a mangiare la dama;
+#       inoltre se si può optare tra il mangiare di dama o di pedina
+#       è obbligatorio mangiare con la dama;
+#     # la dama sceglie la presa dove si mangiano più dame;
+#     # a parità  di condizioni si mangia dove s'incontra prima la dama avversaria.
 
 # TODO:
 # Si vince per abbandono dell'avversario, che si trova in palese difficoltà,
-#  o quando si catturano o si bloccano tutti i pezzi avversari.
+# o quando si catturano o si bloccano tutti i pezzi avversari.
 
 # TODO:
-# Si pareggia in una situazione di evidente equilibrio finale per accordo 
-# dei giocatori o per decisione dell'arbitro a seguito del conteggio di 40 mosse 
+# Si pareggia in una situazione di evidente equilibrio finale per accordo
+# dei giocatori o per decisione dell'arbitro a seguito del conteggio di 40 mosse
 # richiesto da uno dei due giocatori.
-# Il conteggio delle mosse si azzera e riparte da capo tutte le volte che 
+# Il conteggio delle mosse si azzera e riparte da capo tutte le volte che
 # uno dei due giocatori muove una pedina o effettua una presa.
 
 # -----------------main operations-------------------------
@@ -243,16 +322,16 @@ def main():
         # ask for pedina to move
         i, j = ask_box("Enter box location: ")
 
-        # TODO: if does not check for damas, only normal pedinas for now
+        # check if there is a pedina of player color
         if not (box_legal(i, j) and box_occupied(i, j, player_color, board)):
             print("Not a legal position")
             continue
 
         # check if there are moves to do first
-        all_forced_m = forced_board(player_color, board)
-        if all_forced_m and not((i,j) in all_forced_m):
-            print("There are forced moves to do first: ", all_forced_m)
-            continue
+        all_forced_m = board_forced_moves(player_color, board)
+        if all_forced_m and ((i, j) not in all_forced_m):
+                print("There are forced moves to do first: ", all_forced_m)
+                continue
 
         # if there are no possible actions from that position
         forced_m = forced_moves(i, j, board)
@@ -266,6 +345,7 @@ def main():
             # ask for destination box
             end_i, end_j = ask_box("Enter destination box: ")
 
+            # try to perform the move
             if not move(i, j, end_i, end_j, board):
                 continue
 
