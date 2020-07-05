@@ -47,18 +47,6 @@ def print_board(board):
         print("|")
         print("   ---------------------------------")
 
-# def index_legal(i):
-#     return i in range(SIZE)
-
-# check if the pedina is inside the board
-def box_legal(i, j):
-    return i in range(SIZE) and j in range(SIZE)
-
-# check if there is a pedina of that color
-def box_occupied(i, j, color, board):
-    # TODO: fare una classe per poter controllare anche la dama in questo modo
-    return board[i][j] == color
-
 def ask_input(string):
     while True:
         try:
@@ -87,6 +75,20 @@ def ask_box(string):
     return i, j
 
 # --------------------dama rules----------------------------
+
+# def index_legal(i):
+#     return i in range(SIZE)
+
+# check if the pedina is inside the board
+def box_legal(i, j):
+    return i in range(SIZE) and j in range(SIZE)
+
+# check if there is a pedina of that color
+def box_occupied(i, j, color, board):
+    if color == WHITE:
+        return board[i][j] == WHITE or board[i][j] == DAMAW
+    else:
+        return board[i][j] == BLACK or board[i][j] == DAMAB
 
 # check if the pedina becomes dama
 def dama(i, j, board):
@@ -175,16 +177,6 @@ def eat_pedina(i, j, end_i, end_j, board):
 # if and only if (end_i, end_j) are legal_moves
 # if there's a forced move to do and it's not (end_i, end_j) it is an illegal move
 def move(i, j, end_i, end_j, board):
-    # # check if is legal board position
-    # if not box_legal(i, j):
-    #     print("Position out of the board")
-    #     return False
-
-    # # check if there's a pedina
-    # if board[i][j] == EMPTY:
-    #     print("This bitch is empty yeet")
-    #     return False
-
     # check if is legal board position
     if not box_legal(end_i, end_j):
         print("Position out of the board")
@@ -195,13 +187,13 @@ def move(i, j, end_i, end_j, board):
 
     # no moves allowed
     if (not f_moves) and (not l_moves):
-        print("no2.0")
+        print("No moves to do from ", i, j)
         return False
 
     # there's a forced move but it's not the selected one
     if f_moves:
         if not ((end_i, end_j) in f_moves):
-            print("Not a forced move")
+            print("There are forced moves to do: ", f_moves)
             return False
         else:
             eat_pedina(i, j, end_i, end_j, board)
@@ -215,8 +207,25 @@ def move(i, j, end_i, end_j, board):
     board[i][j] = EMPTY
     return True
 
-# TODO: add rules for draw
+# TODO:
+# Avendo più possibilità di presa si debbono rispettare obbligatoriamente 
+# nell'ordine le seguenti priorità:
+#     è obbligatorio mangiare dove ci sono più pezzi;
+#     a parità di pezzi da prendere, tra pedina e dama si è obbligati a mangiare la dama;
+#       inoltre se si può optare tra il mangiare di dama o di pedina è obbligatorio mangiare con la dama;
+#     la dama sceglie la presa dove si mangiano più dame;
+#     a parità  di condizioni si mangia dove s'incontra prima la dama avversaria.
 
+# TODO:
+# Si vince per abbandono dell'avversario, che si trova in palese difficoltà,
+#  o quando si catturano o si bloccano tutti i pezzi avversari.
+
+# TODO:
+# Si pareggia in una situazione di evidente equilibrio finale per accordo 
+# dei giocatori o per decisione dell'arbitro a seguito del conteggio di 40 mosse 
+# richiesto da uno dei due giocatori.
+# Il conteggio delle mosse si azzera e riparte da capo tutte le volte che 
+# uno dei due giocatori muove una pedina o effettua una presa.
 
 # -----------------main operations-------------------------
 
@@ -283,17 +292,6 @@ def main():
             player_color = WHITE
 
         print("You are: " + player_color)
-
-    # print(win_condition(WHITE, board))
-
-    # board[4][2] = BLACK
-    # print(forced_moves(5, 3, board))
-    # eat_pedina(5,3,3,1,board)
-
-    # print(move(5,1,4,2,board))
-    # move(i, j, end_i, end_j, board)
-
-    # print_board(board)
 
 if __name__ == "__main__":
     main()
