@@ -1,4 +1,3 @@
-
 #!/usr/bin/env python3
 
 from moves import *
@@ -79,6 +78,7 @@ def win_condition(color, board):
                 continue
             else:
                 return False
+
     return True
 
 # returns list of legal moves from a position
@@ -103,10 +103,33 @@ def legal_moves(i, j, board):
 
     return legal_m
 
+def check_if_empty(list_of_lists):
+    for elem in list_of_lists:
+        if elem:
+            return False
+    return True
+
+def update_forced_moves(i, j, all_forced_m):
+    updated_forced_m = []
+    for path in all_forced_m:
+        if path[0] == (i, j):
+            path.pop(0)
+            updated_forced_m.append(path)
+
+    return updated_forced_m
+
+def search_forced_move(i, j, all_forced_m):
+    for path in all_forced_m:
+        if path[0] == (i, j):
+            return True
+
+    return False
+
+
 # changes the board moving a pedina.
 # if and only if (end_i, end_j) are legal_moves
 # if there's a forced move to do and it's not (end_i, end_j) it is an illegal move
-def move(i, j, end_i, end_j, f_moves, board):
+def try_move(i, j, end_i, end_j, all_forced_m, board):
     # check if is legal board position
     if not box_legal(end_i, end_j):
         print("Position out of the board")
@@ -115,13 +138,14 @@ def move(i, j, end_i, end_j, f_moves, board):
     l_moves = legal_moves(i, j, board)
 
     # there's a forced move but it's not the selected one
-    if f_moves:
-        if (end_i, end_j) != f_moves[0]:
-            print("There are forced moves to do: ", f_moves)
-            return False
-        else:
-            f_moves.pop(0)
+    if not check_if_empty(all_forced_m):
+        if search_forced_move(end_i, end_j, all_forced_m):
+            all_forced_m = update_forced_moves(end_i, end_j, all_forced_m)
             eat_pedina(i, j, end_i, end_j, board)
+        else:
+            print("There are forced moves to do: ", all_forced_m)
+            return False
+
 
     # there's a legal move but it's not the selected one
     elif l_moves:
@@ -137,11 +161,11 @@ def move(i, j, end_i, end_j, f_moves, board):
 # Avendo più possibilità di presa si debbono rispettare obbligatoriamente
 # nell'ordine le seguenti priorità:
 #DONE # è obbligatorio mangiare dove ci sono più pezzi;
-#     # a parità di pezzi da prendere, tra pedina e dama si è obbligati a mangiare la dama;
+#DONE # a parità di pezzi da prendere, tra pedina e dama si è obbligati a mangiare la dama;
 #       inoltre se si può optare tra il mangiare di dama o di pedina
 #       è obbligatorio mangiare con la dama;
-#     # la dama sceglie la presa dove si mangiano più dame;
-#     # a parità  di condizioni si mangia dove s'incontra prima la dama avversaria.
+#DONE # la dama sceglie la presa dove si mangiano più dame;
+#DONE # a parità  di condizioni si mangia dove s'incontra prima la dama avversaria.
 
 # TODO:
 # Si vince per abbandono dell'avversario, che si trova in palese difficoltà,
@@ -162,8 +186,14 @@ def main():
 
     start_board(board)
 
-    board[4][2] = WHITE
-    # board[1][5] = EMPTY
+    # board[4][4] = BLACK
+    # board[5][5] = DAMAW
+    board[5][7] = EMPTY
+    board[4][6] = WHITE
+    board[2][6] = EMPTY
+    board[4][4] = WHITE
+    board[3][5] = BLACK
+    board[2][4] = EMPTY
 
     print_board(board)
 
@@ -171,7 +201,7 @@ def main():
     print("You are: " + player_color)
     # game loop
     while True:
-        forced_m = board_forced_moves(player_color, board)
+        all_forced_m = board_forced_moves(player_color, board)
         # first position loop
         while True:
             # ask for pedina to move
@@ -183,12 +213,12 @@ def main():
                 continue
 
             # check if there are moves to do first
-            if forced_m:
-                if (i, j) != forced_m[0]:
-                    print("There are forced moves to do first: ", forced_m)
-                    continue
+            if not check_if_empty(all_forced_m):
+                if search_forced_move(i, j, all_forced_m):
+                    all_forced_m = update_forced_moves(i, j, all_forced_m)
                 else:
-                    forced_m.pop(0)
+                    print("There are forced moves to do first: ", all_forced_m)
+                    continue
 
             else:
                 # if there are no possible actions from that position
@@ -204,7 +234,7 @@ def main():
             end_i, end_j = ask_box("Enter destination box: ")
 
             # try to perform the move
-            if not move(i, j, end_i, end_j, forced_m, board):
+            if not try_move(i, j, end_i, end_j, all_forced_m, board):
                 continue
 
             check_dama(end_i, end_j, board)
@@ -212,8 +242,8 @@ def main():
             print_board(board)
 
             # if there are still move to do
-            if forced_m:
-                print("There are still forced moves to do:", forced_m)
+            if not check_if_empty(all_forced_m):
+                print("There are still forced moves to do:", all_forced_m)
                 i = end_i
                 j = end_j
                 continue
