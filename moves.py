@@ -142,92 +142,53 @@ def board_forced_moves(color, board):
     print("Forced paths:", max_paths)
     return max_paths
 
+def check_direction(i, dir_i, j, dir_j, color, path, eaten, dama, board):
+    if box_legal(i + dir_i, j + dir_j) and board[i + dir_i][j + dir_j] != EMPTY:
+        if not color_check(i + dir_i, j + dir_j, color, board):
+            # se la casella dx è occupata da una pedina avversaria
+            if box_legal(i + dir_i*2, j + dir_j*2) and board[i + dir_i*2][j + dir_j*2] == EMPTY:
+                # e la casella dopo è libera, posso mangiare
+                if not is_dama(board[i + dir_i][j + dir_j]):
+                    new_eaten = eaten.copy()
+                    new_eaten.append("p") #ho mangiato una pedina
+                    new_path = path.copy()
+                    new_path.append((i + dir_i*2, j + dir_j*2))
+                    #copia della nuova board con la mossa effettuata
+                    new_board = copy_new_board(i, j, i + dir_i*2, j + dir_j*2, True, board)
+                    calculate_forced_moves(i + dir_i*2, j + dir_j*2, color, new_path, new_eaten, dama, new_board)
+                    return False
+                elif dama:
+                    new_eaten = eaten.copy()
+                    new_eaten.append("d") #ho mangiato una dama
+                    new_path = path.copy()
+                    new_path.append((i + dir_i*2, j + dir_j*2))
+                    new_board = copy_new_board(i, j, i + dir_i*2, j + dir_j*2, True, board)
+                    calculate_forced_moves(i + dir_i*2, j + dir_j*2, color, new_path, new_eaten, dama, new_board)
+                    return False
+
+    return True
 
 def calculate_forced_moves(i, j, color, path, eaten, dama, board):
     stop = True
-    dir = 1
+    dir_i = 1
     if color == WHITE:
-        dir = -1
+        dir_i = -1
+    # dir_j = -1 se dx
+    dx = -1
+    # dir_j = 1 se sx
+    sx = 1
 
     # destra
-    if box_legal(i + dir, j - 1) and board[i + dir][j - 1] != EMPTY:
-        if not color_check(i + dir, j - 1, color, board):
-            # se la casella dx è occupata da una pedina avversaria
-            if box_legal(i + dir*2, j - 2) and board[i + dir*2][j - 2] == EMPTY:
-                # e la casella dopo è libera, posso mangiare
-                if not is_dama(board[i + dir][j - 1]):
-                    eaten.append("p") #ho mangiato una pedina
-                    path.append((i + dir*2, j - 2))
-                    #copia della nuova board con la mossa effettuata
-                    new_board = copy_new_board(i, j, i + dir*2, j - 2, True, board)
-                    calculate_forced_moves(i + dir*2, j - 2, color, path, eaten, dama, new_board)
-                    stop = False
-                elif dama:
-                    eaten.append("d") #ho mangiato una dama
-                    path.append((i + dir*2, j - 2))
-                    new_board = copy_new_board(i, j, i + dir*2, j - 2, True, board)
-                    calculate_forced_moves(i + dir*2, j - 2, color, path, eaten, dama, new_board)
-                    stop = False
-
+    stop = check_direction(i, dir_i, j, dx, color, path, eaten, dama, board)
     # sinistra
-    if box_legal(i + dir, j + 1) and board[i + dir][j + 1] != EMPTY:
-        if not color_check(i + dir, j + 1, color, board):
-            if box_legal(i + dir*2, j + 2) and board[i + dir*2][j + 2] == EMPTY:
-                if not is_dama(board[i + dir][j + 1]):
-                    eaten.append("p")
-                    path.append((i + dir*2, j + 2))
-                    new_board = copy_new_board(i, j, i + dir*2, j + 2, True, board)
-                    calculate_forced_moves(i + dir*2, j + 2, color, path, eaten, dama, new_board)
-                    stop = False
-                elif dama:
-                    eaten.append("d")
-                    path.append((i + dir*2, j + 2))
-                    new_board = copy_new_board(i, j, i + dir*2, j + 2, True, board)
-                    calculate_forced_moves(i + dir*2, j + 2, color, path, eaten, dama, new_board)
-                    stop = False
+    stop = check_direction(i, dir_i, j, sx, color, path, eaten, dama, board)
 
-    # se sono una dama valuto anche e altre due direzioni
+    # se sono una dama valuto anche le altre due direzioni
     if dama:
-        dir *= -1
-        # destra
-        if box_legal(i + dir, j - 1) and board[i + dir][j - 1] != EMPTY:
-            if not color_check(i + dir, j - 1, color, board):
-                # se la casella dx è occupata da una pedina avversaria
-                if box_legal(i + dir*2, j - 2) and board[i + dir*2][j - 2] == EMPTY:
-                    # e la casella dopo è libera, posso mangiare
-                    if not is_dama(board[i + dir][j - 1]):
-                        eaten.append("p")
-                        path.append((i + dir*2, j - 2))
-                        new_board = copy_new_board(i, j, i + dir*2, j - 2, True, board)
-                        calculate_forced_moves(i + dir*2, j - 2, color, path, eaten, dama, new_board)
-                        stop = False
-                    else:
-                        eaten.append("d")
-                        path.append((i + dir*2, j - 2))
-                        new_board = copy_new_board(i, j, i + dir*2, j - 2, True, board)
-                        calculate_forced_moves(i + dir*2, j - 2, color, path, eaten, dama, new_board)
-                        stop = False
+        dir_i *= -1
+        stop = check_direction(i, dir_i, j, dx, color, path, eaten, dama, board)
+        stop = check_direction(i, dir_i, j, sx, color, path, eaten, dama, board)
 
-        # sinistra
-        if box_legal(i + dir, j + 1) and board[i + dir][j + 1] != EMPTY:
-            if not color_check(i + dir, j + 1, color, board):
-                if box_legal(i + dir*2, j + 2) and board[i + dir*2][j + 2] == EMPTY:
-                    if not is_dama(board[i + dir][j + 1]):
-                        eaten.append("p")
-                        path.append((i + dir*2, j + 2))
-                        new_board = copy_new_board(i, j, i + dir*2, j + 2, True, board)
-                        calculate_forced_moves(i + dir*2, j + 2, color, path, eaten, dama, new_board)
-                        stop = False
-
-                    else:
-                        eaten.append("d")
-                        path.append((i + dir*2, j + 2))
-                        new_board = copy_new_board(i, j, i + dir*2, j + 2, True, board)
-                        calculate_forced_moves(i + dir*2, j + 2, color, path, eaten, dama, new_board)
-                        stop = False
-
-
-    # se arrivo fino in fondo e nel path c'è più di una mossa
     if stop and len(path) > 1:
         eval_and_register_path(path, eaten, dama)
         # aggiungi la mossa al set di mosse (poi verrà confrontata)
