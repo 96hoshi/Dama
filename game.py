@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 
+import random
 from moves import *
 
 # -----------------utility functions-------------------------
@@ -63,18 +64,26 @@ def ask_box(string):
 # --------------------dama rules----------------------------
 
 # check if the pedina becomes dama
-def check_dama(i, j, board):
+def check_new_dama(i, j, board):
     if board[i][j] == WHITE  and i == 0:
         board[i][j] = DAMAW
+        return True
 
     if board[i][j] == BLACK and i == 7:
         board[i][j] = DAMAB
+        return True
+
+    return False
 
 # check if there's only one color in the board
 def win_condition(color, board):
+    dama = DAMAB
+    if color == WHITE:
+        dama = DAMAW
+
     for i in range(SIZE):
         for j in range(SIZE):
-            if board[i][j] == EMPTY or board[i][j] == color:
+            if board[i][j] == EMPTY or board[i][j] == color or board[i][j] == dama:
                 continue
             else:
                 return False
@@ -152,12 +161,14 @@ def try_move(i, j, end_i, end_j, all_forced_m, board):
         if (end_i, end_j) not in l_moves:
             print("Not a legal move")
             return False
+        else:
+            l_moves.clear()
 
     board[end_i][end_j] = board[i][j]
     board[i][j] = EMPTY
     return True
 
-# TODO: ORDINAMENTO
+# ORDINAMENTO:
 # Avendo più possibilità di presa si debbono rispettare obbligatoriamente
 # nell'ordine le seguenti priorità:
 #DONE # è obbligatorio mangiare dove ci sono più pezzi;
@@ -180,86 +191,144 @@ def try_move(i, j, end_i, end_j, all_forced_m, board):
 
 # -----------------main operations-------------------------
 
+def human_turn(player_color, board):
+    all_forced_m = board_forced_moves(player_color, board)
+    print("You are player: " + player_color)
+
+    # first position loop
+    while True:
+        # ask for pedina to move
+        i, j = ask_box("Enter box location: ")
+
+        # check if there is a pedina of player color
+        if not (box_legal(i, j) and color_check(i, j, player_color, board)):
+            print("Not a legal position")
+            continue
+
+        # check if there are moves to do first
+        if not check_if_empty(all_forced_m):
+            if search_forced_move(i, j, all_forced_m):
+                all_forced_m = update_forced_moves(i, j, all_forced_m)
+            else:
+                print("There are forced moves to do first: ", all_forced_m)
+                continue
+        else:
+            # if there are no possible actions from that position
+            legal_m = legal_moves(i, j, board)
+            if not legal_m:
+                print("No possible actions from", i, j)
+                continue
+        break
+
+    # destination move loop
+    while True:
+        # ask for destination box
+        end_i, end_j = ask_box("Enter destination box: ")
+
+        # try to perform the move
+        if not try_move(i, j, end_i, end_j, all_forced_m, board):
+            continue
+
+        if check_new_dama(end_i, end_j, board):
+            print_board(board)
+            if win_condition(player_color, board):
+                return True
+            else:
+                return False
+
+        print_board(board)
+
+        # if there are still move to do
+        if not check_if_empty(all_forced_m):
+            print("There are still forced moves to do:", all_forced_m)
+            i = end_i
+            j = end_j
+            continue
+        # end destination move loop
+        break
+
+    if win_condition(player_color, board):
+        return True
+
+    return False
+
+def all_legal_moves(color, board):
+    all_legal_m = []
+
+    for i in range(SIZE):
+        for j in range(SIZE):
+            if color_check(i, j, color, board):
+                l_m = legal_moves(i, j, board)
+                for move in l_m:
+                    all_legal_m.append([(i, j), move])
+
+    return all_legal_m
+
+def perform_move(move, forced, board):
+    while len(move) > 1:
+        # there's a forced move but it's not the selected one
+        # TODO: problemi di index out of bound
+        i, j = move[0]
+        end_i, end_j = move[1]
+        print("IA: ", move[0], move[1])
+
+        if forced:
+            eat_pedina(i, j, end_i, end_j, board)
+
+        board[end_i][end_j] = board[i][j]
+        board[i][j] = EMPTY
+
+        del move[:1]
+
+def ia_turn(player_color, board):
+    all_forced_m = board_forced_moves(player_color, board)
+    print("You are IA: " + player_color)
+
+    move = []
+    forced = False
+    # check if there are moves to do first
+    if not check_if_empty(all_forced_m):
+        move = random.choice(all_forced_m)
+        forced = True
+    else:
+        all_legal_m = all_legal_moves(player_color, board)
+        if not check_if_empty(all_legal_m):
+            move = random.choice(all_legal_m)
+        else:
+            return False
+
+    i, j = move[0]
+    end_i, end_j = move[1]
+
+    perform_move(move, forced, board)
+
+    check_new_dama(end_i, end_j, board)
+    print_board(board)
+
+    if win_condition(player_color, board):
+        return True
+
+    return False
+
+
 def main():
     # initialize the board
     board = [[EMPTY for c in range(SIZE)] for r in range(SIZE)]
 
     start_board(board)
-
-    # board[4][4] = BLACK
-    # board[5][5] = DAMAW
-    board[5][7] = EMPTY
-    board[4][6] = WHITE
-    board[2][6] = EMPTY
-    board[4][4] = WHITE
-    board[3][5] = BLACK
-    board[2][4] = EMPTY
-
     print_board(board)
 
-    player_color = WHITE
-    print("You are: " + player_color)
     # game loop
     while True:
-        all_forced_m = board_forced_moves(player_color, board)
-        # first position loop
-        while True:
-            # ask for pedina to move
-            i, j = ask_box("Enter box location: ")
-
-            # check if there is a pedina of player color
-            if not (box_legal(i, j) and color_check(i, j, player_color, board)):
-                print("Not a legal position")
-                continue
-
-            # check if there are moves to do first
-            if not check_if_empty(all_forced_m):
-                if search_forced_move(i, j, all_forced_m):
-                    all_forced_m = update_forced_moves(i, j, all_forced_m)
-                else:
-                    print("There are forced moves to do first: ", all_forced_m)
-                    continue
-
-            else:
-                # if there are no possible actions from that position
-                legal_m = legal_moves(i, j, board)
-                if not legal_m:
-                    print("No possible actions from", i, j)
-                    continue
+        end = human_turn(WHITE, board)
+        if end:
+            print("Whites win!")
             break
 
-        # destination move loop
-        while True:
-            # ask for destination box
-            end_i, end_j = ask_box("Enter destination box: ")
-
-            # try to perform the move
-            if not try_move(i, j, end_i, end_j, all_forced_m, board):
-                continue
-
-            check_dama(end_i, end_j, board)
-
-            print_board(board)
-
-            # if there are still move to do
-            if not check_if_empty(all_forced_m):
-                print("There are still forced moves to do:", all_forced_m)
-                i = end_i
-                j = end_j
-                continue
-            # end destination move loop
+        end = ia_turn(BLACK, board)
+        if end:
+            print("Blacks win!")
             break
-
-        if win_condition(player_color, board):
-            print("Player " + player_color + " wins!")
-            break
-
-        if player_color == WHITE:
-            player_color = BLACK
-        else:
-            player_color = WHITE
-
-        print("You are: " + player_color)
 
 if __name__ == "__main__":
     main()
