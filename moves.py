@@ -160,32 +160,37 @@ def search_forced_move(i, j, all_forced_m):
 
     return False
 
+def movement(i, j, end_i, end_j, eat, board):
+    board[end_i][end_j] = board[i][j]
+    board[i][j] = EMPTY
+    if eat:
+        eat_pedina(i, j, end_i, end_j, board)
+
 # changes the board moving a pedina.
 # if and only if (end_i, end_j) are legal_moves
 # if there's a forced move to do and it's not (end_i, end_j) it is an illegal move
 def try_move(i, j, end_i, end_j, all_forced_m, board):
-    l_moves = legal_moves(i, j, board)
+    eat = False
 
     # there's a forced move but it's not the selected one
     if not check_if_empty(all_forced_m):
         if search_forced_move(end_i, end_j, all_forced_m):
             all_forced_m = update_forced_moves(end_i, end_j, all_forced_m)
-            eat_pedina(i, j, end_i, end_j, board)
+            eat = True
         else:
             print("There are forced moves to do: ", all_forced_m)
             return False
+    else:
+        l_moves = legal_moves(i, j, board)
+        if l_moves:
+            # there's a legal move but it's not the selected one
+            if (end_i, end_j) not in l_moves:
+                print("Not a legal move")
+                return False
+            else:
+                l_moves.clear()
 
-    # there's a legal move but it's not the selected one
-    elif l_moves:
-        if (end_i, end_j) not in l_moves:
-            print("Not a legal move")
-            return False
-        else:
-            l_moves.clear()
-
-    board[end_i][end_j] = board[i][j]
-    board[i][j] = EMPTY
-
+    movement(i, j, end_i, end_j, eat, board)
     check_new_dama(end_i, end_j, board)
 
     return True
@@ -292,14 +297,13 @@ def update_max(n_eat, path, eaten, dama):
     max_eaten_order = eaten
     max_is_dama = dama
 
-def eval_and_register_path(path, eaten, dama):
+def register_path(path, eaten, dama):
     global max_eat
     global max_paths
     global max_eaten_order
     global max_is_dama
 
     n_eat = len(eaten)
-    # print(n_eat, path, eaten, dama)
 
     if n_eat > max_eat:
         update_max(n_eat, path, eaten, dama)
@@ -331,13 +335,21 @@ def eval_and_register_path(path, eaten, dama):
                 else:
                     max_paths.append(path)
 
+def copy_new_eaten(eaten, pedina):
+    new_eaten = eaten.copy()
+    new_eaten.append(pedina)
+
+    return new_eaten
+
+def copy_new_path(path, elem):
+    new_path = path.copy()
+    new_path.append(elem)
+
+    return new_path
+
 def copy_new_board(i, j, end_i, end_j, eat, board):
     new_board = deepcopy(board)
-
-    new_board[end_i][end_j] = new_board[i][j]
-    new_board[i][j] = EMPTY
-    if eat:
-        eat_pedina(i, j, end_i, end_j, new_board)
+    movement(i, j, end_i, end_j, eat, new_board)
 
     return new_board
 
@@ -349,7 +361,6 @@ def board_forced_moves(color, board):
             if color_check(i, j, color, board):
                 calculate_forced_moves(i, j, color, [(i, j)], [], is_dama(board[i][j]), board)
 
-    # print("Forced paths:", max_paths)
     return max_paths
 
 def check_direction(i, dir_i, j, dir_j, color, path, eaten, dama, board):
@@ -359,19 +370,15 @@ def check_direction(i, dir_i, j, dir_j, color, path, eaten, dama, board):
             if box_legal(i + dir_i*2, j + dir_j*2) and board[i + dir_i*2][j + dir_j*2] == EMPTY:
                 # e la casella dopo è libera, posso mangiare
                 if not is_dama(board[i + dir_i][j + dir_j]):
-                    new_eaten = eaten.copy()
-                    new_eaten.append("p") #ho mangiato una pedina
-                    new_path = path.copy()
-                    new_path.append((i + dir_i*2, j + dir_j*2))
-                    #copia della nuova board con la mossa effettuata
+                    new_eaten = copy_new_eaten(eaten,"p") #ho mangiato una pedina semplice
+                    new_path = copy_new_path(path, (i + dir_i*2, j + dir_j*2))
+                    # copia della nuova board con la mossa effettuata
                     new_board = copy_new_board(i, j, i + dir_i*2, j + dir_j*2, True, board)
                     calculate_forced_moves(i + dir_i*2, j + dir_j*2, color, new_path, new_eaten, dama, new_board)
                     return False
                 elif dama:
-                    new_eaten = eaten.copy()
-                    new_eaten.append("d") #ho mangiato una dama
-                    new_path = path.copy()
-                    new_path.append((i + dir_i*2, j + dir_j*2))
+                    new_eaten = copy_new_eaten(eaten,"d") #ho mangiato una dama
+                    new_path = copy_new_path(path, (i + dir_i*2, j + dir_j*2))
                     new_board = copy_new_board(i, j, i + dir_i*2, j + dir_j*2, True, board)
                     calculate_forced_moves(i + dir_i*2, j + dir_j*2, color, new_path, new_eaten, dama, new_board)
                     return False
@@ -400,5 +407,5 @@ def calculate_forced_moves(i, j, color, path, eaten, dama, board):
         stop = check_direction(i, dir_i, j, sx, color, path, eaten, dama, board)
 
     if stop and len(path) > 1:
-        eval_and_register_path(path, eaten, dama)
+        register_path(path, eaten, dama)
         # aggiungi la mossa al set di mosse (poi verrà confrontata)
