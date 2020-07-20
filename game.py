@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 import random
+import time
 from moves import *
 from ia_dama import ia_turn
 
@@ -28,15 +29,21 @@ def main():
 
     # game loop
     while True:
-        end = human_turn(WHITE, board)
+        # end = human_turn(WHITE, board)
+        # if end:
+        #     print("Whites win!")
+        #     break
+
+        end = ia_turn(WHITE, board)
         if end:
             print("Whites win!")
             break
-
+        time.sleep(2)
         end = ia_turn(BLACK, board)
         if end:
             print("Blacks win!")
             break
+        time.sleep(2)
 
 if __name__ == "__main__":
     main()
