@@ -7,10 +7,10 @@ from copy import copy, deepcopy
 SIZE = 8
 
 EMPTY = " "
-WHITE = "W"
-BLACK = "B"
-DAMAW = "W-D"
-DAMAB = "B-D"
+WHITE = ' \033[91m' + "W" + '\033[0m '#"W"
+BLACK = ' \033[94m' + "B" + '\033[0m '#"B"
+DAMAW = '\033[91m' + "W-D" + '\033[0m'#"W-D"
+DAMAB = '\033[94m' + "B-D" + '\033[0m'#"B-D"
 
 max_eat = 0
 max_paths = []
@@ -32,6 +32,33 @@ def print_board(board):
             print('|{:^3}'.format(board[r][c]), end = "")
         print("|")
         print("   ---------------------------------")
+
+def print_position(pos, color):
+    c = '\033[94m'
+    if color == WHITE:
+        c = '\033[91m'
+
+    i, j = pos
+    print(" {}{},{}\033[0m".format(c, i, j), end = "")
+
+def print_move(move, color):
+    first = True
+
+    for m in move:
+        print_position(m[0], color)
+        print(" ->", end = "")
+        print_position(m[1], color)
+        print(", ", end = "")
+    print()
+
+def print_movement(m, color):
+    if not m:
+        return
+
+    print_position(m[0], color)
+    print(" ->", end = "")
+    print_position(m[1], color)
+    print()
 
 # check if the pedina is inside the board
 def box_legal(i, j):
