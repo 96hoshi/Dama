@@ -3,7 +3,7 @@
 import math
 from moves import *
 
-MAX_DEPTH = 5
+MAX_DEPTH = 3
 min_val = math.inf
 max_val = -math.inf
 
@@ -59,10 +59,10 @@ def eval(board, max_color):
             if board[i][j] == DAMAB:
                 black_damas += 1
 
-    if max_color == BLACK:
-        score = w1*(blacks - whites) + w2*(black_damas - white_damas)
-    else:
-        score = w1*(whites - blacks) + w2*(white_damas - black_damas)
+    score = w1*(blacks - whites) + w2*(black_damas - white_damas)
+
+    if max_color == WHITE:
+        return -score
 
     return score
 
@@ -71,52 +71,76 @@ def minmax(node, depth, maximizing_player, max_color, min_color):
 
     if depth == MAX_DEPTH or win_condition(node):
         return eval(node, max_color), []
+
     if maximizing_player:
         value = -math.inf
-        m = []
+        max_current = []
         forced_m = board_forced_moves(max_color, node)
         if forced_m:
+            # print("DIM FORCED: {} {}".format(len(forced_m), forced_m))
             for move in forced_m:
                 child = deepcopy(node)
                 perform_move(move, True, child)
-                v, m = minmax(child, depth + 1, False, max_color, min_color)
-                value = max(value, v)
-                m.append(move)
+                v, _ = minmax(child, depth + 1, False, max_color, min_color)
+                # print("val: {} moves:{}".format(v, m))
+                if value <= v:
+                    value = v
+                    max_current = move
+                # print("frc-val: {}".format(v), end = "")
+                # print_movement(move, max_color)
         else:
             all_legal_m = board_legal_moves(max_color, node)
+            # print("DIM LEGAL: {} {}".format(len(all_legal_m), all_legal_m))
             for move in all_legal_m:
                 child = deepcopy(node)
                 perform_move(move, False, child)
-                v, m = minmax(child, depth + 1, False, max_color, min_color)
-                value = max(value, v)
-                m.append(move)
+                v, _ = minmax(child, depth + 1, False, max_color, min_color)
+                if value < v:
+                    value = v
+                    max_current = move
+                # print("lgl-val: {}".format(v), end = "")
+                # print_movement(move, max_color)
+
 
         max_val = max(max_val, value)
         min_val = min(min_val, value)
-        return value, m
+        # print(" Max: {} move: {}".format(value, m))
+        # print("MAX_val: {}".format(value), end = "")
+        # print_movement(max_current, max_color)
+        return value, max_current
+
     else: # minimizing player
         value = math.inf
-        m = []
+        min_current = []
         forced_m = board_forced_moves(min_color, node)
         if forced_m:
             for move in forced_m:
                 child = deepcopy(node)
                 perform_move(move, True, child)
                 v, m = minmax(child, depth + 1, True, max_color, min_color)
-                value = min(value, v)
-                m.append(move)
+                if value > v:
+                    value = v
+                    min_current = move
+                # print("val-F: {}".format(v), end = "")
+                # print_movement(move, min_color)
         else:
             all_legal_m = board_legal_moves(min_color, node)
             for move in all_legal_m:
                 child = deepcopy(node)
                 perform_move(move, False, child)
                 v, m = minmax(child, depth + 1, True, max_color, min_color)
-                value = min(value, v)
-                m.append(move)
+                if value > v:
+                    value = v
+                    min_current = move
+        #         print("val-L: {}".format(v), end = "")
+        #         print_movement(move, min_color)
 
-        return value, m
+        # print("MIN_val: {}".format(value), end = "")
+        # print_movement(m, min_color)
+        return value, min_current
 
 def ia_turn(player_color, board):
+    print("{} TURN:".format(player_color))
     global min_val, max_val
 
     all_forced_m = board_forced_moves(player_color, board)
@@ -128,14 +152,14 @@ def ia_turn(player_color, board):
         forced = True
 
     enemy_color = opposite_color(player_color)
-    moves = minmax(board, 0, True, player_color, enemy_color)[1]
-    print("    MOVES:", moves)
+    val, move = minmax(board, 0, True, player_color, enemy_color)
+    print("    VAL: {}".format(val), end = "")
 
-    move = moves.pop()
-    print("------------- Min: {} MAX: {}".format(min_val, max_val))
+    print("#### MIN: {} MAX: {}".format(min_val, max_val))
     min_val = math.inf
     max_val = -math.inf
-    print("{} IA move: {}".format(player_color, move))
+    print("    {} IA move:".format(player_color), end = "")
+    print_movement(move, player_color)
 
     perform_move(move, forced, board)
     print_board(board)
