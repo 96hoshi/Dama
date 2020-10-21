@@ -15,24 +15,12 @@ white_times = []
 black_times = []
 
 
-# def timer(func):
-#     """Print the runtime of the decorated function"""
-#     @functools.wraps(func)
-#     def wrapper_timer(*args, **kwargs):
-#         start_time = time.perf_counter()  # 1
-#         value = func(*args, **kwargs)
-#         end_time = time.perf_counter()  # 2
-#         run_time = end_time - start_time  # 3
-#         print(f"Finished {func.__name__!r} in {run_time:.4f} secs")
-#         return value
-#     return wrapper_timer()
-
 def test_timer(func):
 
     def wrapper_timer(*args, **kwargs):
-        start_time = time.perf_counter()  # 1
+        start_time = time.perf_counter_ns()  # 1
         value = func(*args, **kwargs)
-        end_time = time.perf_counter()  # 2
+        end_time = time.perf_counter_ns()  # 2
         run_time = end_time - start_time  # 3
 
         if args[1][0] == WHITE:
@@ -80,19 +68,19 @@ def reset_draw(color):
 
 
 def game_over(eat_move, color, end):
-    winner = "Whites"
-    if color == BLACK:
-        winner = "Blacks"
-
     if end:
-        # print(winner + " win!")
+        winner = "Whites"
+        if color == BLACK:
+            winner = "Blacks"
+        print(winner + " win!")
         return True
+
     if eat_move:
         reset_draw(color)
     else:
         draw_counter = increment_draw(color)
         if draw_counter == 40:
-            # print("Draw!")
+            print("Draw!")
             return True
 
     return False
@@ -108,7 +96,7 @@ def main():
 
     parser = argparse.ArgumentParser(
         description='Play a dama game against another player, an ai or\
-         let two ia play',
+         let two ai play',
         epilog="Choose your game!")
     parser.add_argument("--white_depth", type=int, help="sets white ai depth")
     parser.add_argument("--black_depth", type=int, help="sets black ai depth")
@@ -119,7 +107,7 @@ def main():
     board = [[EMPTY for c in range(SIZE)] for r in range(SIZE)]
 
     start_board(board)
-    # print_board(board)
+    print_board(board)
 
     if args.white_depth == 0 or args.white_depth:
         first_turn = ia_turn
@@ -137,12 +125,12 @@ def main():
 
     # min game loop
     while True:
-        e_m, c, end = execute_turn(first_turn, first_args)
-        if game_over(e_m, WHITE, end):
+        eat_m, c, end = execute_turn(first_turn, first_args)
+        if game_over(eat_m, c, end):
             break
 
-        e_m, c, end = execute_turn(second_turn, second_args)
-        if game_over(e_m, c, end):
+        eat_m, c, end = execute_turn(second_turn, second_args)
+        if game_over(eat_m, c, end):
             break
 
     # stats
@@ -152,7 +140,6 @@ def main():
     b_max = np.max(black_times)
     w_min = np.min(white_times)
     b_min = np.min(black_times)
-
     time = sum(white_times) + sum(black_times)
 
     if draw_white == 40 or draw_black == 40:
@@ -169,30 +156,13 @@ def main():
         res = "BLACK"
 
     # print("COLOR AVG_TIME MAX_TIME MIN_TIME DEPTH RESULT")
-    # with open('tests.txt', 'a') as f:
-    #     f.write("WHITE {:.6f} {:.6f} {:.6f} {} {}\n".format(w_avg, w_max, w_min,
-    #          args.white_depth, w_res))
-    #     f.write("BLACK {:.6f} {:.6f} {:.6f} {} {}\n".format(b_avg, b_max, b_min,
-    #          args.black_depth, b_res))
-    #     f.write("MATCH {} {} {} {:.6f}\n".format(args.white_depth,
-    #          args.black_depth, res, time))
-
-    # print("COLOR AVG_TIME MAX_TIME MIN_TIME")
     # print("DEPTH_W DEPTH_B TIME RESULT")
-    # with open('tests01.txt', 'a') as f:
-    #     f.write("WHITE {:.6f} {:.6f} {:.6f}\n".format(w_avg, w_max, w_min))
-    #     f.write("BLACK {:.6f} {:.6f} {:.6f}\n".format(b_avg, b_max, b_min))
-    #     f.write("GAME {} {} {:.6f} {}\n".format(args.white_depth,
-    #          args.black_depth, time, res))
-
-    # print("COLOR AVG_TIME MAX_TIME MIN_TIME DEPTH RESULT")
-    # print("DEPTH_W DEPTH_B TIME RESULT")
-    with open('tests02.txt', 'a') as f:
-        f.write("WHITE {:.6f} {:.6f} {:.6f} {} {}\n".format(w_avg, w_max, w_min,
+    with open('tests01.txt', 'a') as f:
+        f.write("WHITE {:.3f} {} {} {} {}\n".format(w_avg, w_max, w_min,
             args.white_depth, w_res))
-        f.write("BLACK {:.6f} {:.6f} {:.6f} {} {}\n".format(b_avg, b_max, b_min,
+        f.write("BLACK {:.3f} {} {} {} {}\n".format(b_avg, b_max, b_min,
             args.black_depth, b_res))
-        f.write("GAME {} {} {:.6f} {}\n".format(args.white_depth,
+        f.write("GAME {} {} {} {}\n".format(args.white_depth,
             args.black_depth, time, res))
 
 if __name__ == "__main__":
