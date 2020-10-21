@@ -53,15 +53,6 @@ def print_movement(m, color):
     print_position(m[1], color)
     print()
 
-# DEBUG print
-# def print_move(move, color):
-#     for pos in move:
-#         print_position(pos[0], color)
-#         print(" ->", end = "")
-#         print_position(pos[1], color)
-#         print(", ", end = "")
-#     print()
-
 # --------------------utilities------------------------------
 
 
@@ -87,19 +78,6 @@ def opposite_color(color):
 
 def is_dama(string):
     return string == DAMAB or string == DAMAW
-
-
-# check if the pawn becomes dama
-def check_new_dama(i, j, board):
-    if board[i][j] == WHITE and i == 0:
-        board[i][j] = DAMAW
-        return True
-
-    if board[i][j] == BLACK and i == 7:
-        board[i][j] = DAMAB
-        return True
-
-    return False
 
 
 def ask_input(string):
@@ -164,7 +142,10 @@ def win_condition(color, board):
                         return False
                     if can_eat(i, dir_i, j, 1, enemy_color, board):
                         return False
-    return True
+
+    if check_if_empty(board_forced_moves(color, board)):
+        return True
+    return False
 
 
 # check if is possible to eat AT LEAST a pawn from a position (i, j)
@@ -180,6 +161,54 @@ def can_eat(i, dir_i, j, dir_j, color, board):
                     # I can eat a dama if I'm a dama
                     return True
     return False
+
+
+# ----------------------------------------------
+
+def is_only_color(color, board):
+    for i in range(SIZE):
+        for j in range(SIZE):
+            if board[i][j] is not EMPTY:
+                if not color_check(i, j, color, board):
+                    return False
+    return True
+
+
+def has_player_moves(color, board):
+    for i in range(SIZE):
+        for j in range(SIZE):
+            if board[i][j] is not EMPTY:
+                if color_check(i, j, color, board):
+                    # if the enemy can do a movement then it's not a win condition
+                    if legal_moves(i, j, board):
+                        return True
+
+                    # if the enemy can eat then it's not a win condition
+                    dir_i = 1
+                    if color == WHITE:
+                        dir_i = -1
+                    if can_eat(i, dir_i, j, -1, color, board):
+                        return True
+                    if can_eat(i, dir_i, j, 1, color, board):
+                        return True
+
+                    if is_dama(board[i][j]):
+                        dir_i *= -1
+                        if can_eat(i, dir_i, j, -1, color, board):
+                            return True
+                        if can_eat(i, dir_i, j, 1, color, board):
+                            return True
+    return False
+
+
+def is_player_winner(player_color, board):
+    if is_only_color(player_color, board):
+        return True
+
+    enemy_color = opposite_color(player_color)
+    return not has_player_moves(enemy_color, board)
+
+# ---------------------------------------------------------
 
 
 # returns list of legal moves from a position
@@ -248,22 +277,29 @@ def search_forced_move(i, j, all_forced_m):
 
 
 # perform a single movement froma (i,j) to (end_i,end_j)
-# removing enemy pawn if needed
+# removing enemy pawn if needed, and checking if there is
+# a promotion for a new dama
 def movement(i, j, end_i, end_j, board):
     board[end_i][end_j] = board[i][j]
     board[i][j] = EMPTY
 
+    # check if there is a new dama
+    if end_i == 0 and board[end_i][end_j] == WHITE:
+        board[end_i][end_j] = DAMAW
+    elif end_i == 7 and board[end_i][end_j] == BLACK:
+        board[end_i][end_j] = DAMAB
+
+    # check if an eat move is performed
     diff_i = abs(i - end_i)
     diff_j = abs(j - end_j)
-
     if diff_i == 2 or diff_j == 2:
-        # if eat move is performed
         delete_i = (i + end_i) // 2
         delete_j = (j + end_j) // 2
 
         # removes the eaten pawn between two positions
         board[delete_i][delete_j] = EMPTY
         return True
+
     return False
 
 
@@ -290,7 +326,6 @@ def try_move(i, j, end_i, end_j, all_forced_m, board):
                 l_moves.clear()
 
     movement(i, j, end_i, end_j, board)
-    check_new_dama(end_i, end_j, board)
 
     return True
 
@@ -439,31 +474,6 @@ def calculate_forced_moves(i, j, color, path, eaten, dama, board):
     # aggiungi la mossa al set di mosse (poi verrà confrontata)
     if stop and len(path) > 1:
         register_path(path, eaten, dama)
-
-# ORDINAMENTO:
-# Avendo più possibilità di presa si debbono rispettare obbligatoriamente
-# nell'ordine le seguenti priorità:
-# DONE # è obbligatorio mangiare dove ci sono più pezzi;
-# DONE # a parità di pezzi da prendere, tra pedina e dama si è obbligati
-#        a mangiare la dama;
-#       inoltre se si può optare tra il mangiare di dama o di pedina
-#       è obbligatorio mangiare con la dama;
-# DONE # la dama sceglie la presa dove si mangiano più dame;
-# DONE # a parità  di condizioni si mangia dove s'incontra prima
-#        la dama avversaria.
-
-# TODO:
-# Si vince per abbandono dell'avversario, che si trova in palese difficoltà,
-# o quando si catturano o si bloccano tutti i pezzi avversari.
-# DONE
-
-# TODO:
-# Si pareggia in una situazione di evidente equilibrio finale per accordo
-# dei giocatori o per decisione dell'arbitro a seguito del conto di 40 mosse
-# richiesto da uno dei due giocatori.
-# Il conteggio delle mosse si azzera e riparte da capo tutte le volte che
-# uno dei due giocatori muove una pedina o effettua una presa.
-# DONE
 
 
 def human_turn(player_color, board):
