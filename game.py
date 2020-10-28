@@ -4,7 +4,7 @@ import time
 import functools
 import argparse
 from moves import *
-from ia_dama import ia_turn
+from ia_dama import ia_turn, set_weights
 import numpy as np
 
 
@@ -14,14 +14,23 @@ draw_black = 0
 white_times = []
 black_times = []
 
+we1 = 5
+we2 = 8
+we3 = 4
+we4 = 2.5
+we5 = 0.5
+we6 = -3
+we7 = 3
+we8 = 0.65
+
 
 def test_timer(func):
 
     def wrapper_timer(*args, **kwargs):
-        start_time = time.perf_counter_ns()  # 1
+        start_time = time.perf_counter_ns()
         value = func(*args, **kwargs)
-        end_time = time.perf_counter_ns()  # 2
-        run_time = end_time - start_time  # 3
+        end_time = time.perf_counter_ns()
+        run_time = end_time - start_time
 
         if args[1][0] == WHITE:
             white_times.append(run_time)
@@ -31,7 +40,7 @@ def test_timer(func):
     return wrapper_timer
 
 
-# starting board
+# set the board with the initial configuration
 def start_board(board):
     for c in range(SIZE):
         for r in range(3):
@@ -67,6 +76,9 @@ def reset_draw(color):
         draw_black = 0
 
 
+# check if the game loop needs to stop
+# it occur when a player wins or 40 moves without a eat move are performed.
+# if an eat move is performed then reset the counter, else increment it
 def game_over(eat_move, color, end):
     if end:
         winner = "Whites"
@@ -85,12 +97,13 @@ def game_over(eat_move, color, end):
 
     return False
 
+
+# wrapper to call teh correct function with the corrects arguments
 @test_timer
 def execute_turn(fun, args):
     return fun(*args)
 
 
-# @timer
 def main():
     parser = argparse.ArgumentParser()
 
@@ -98,10 +111,14 @@ def main():
         description='Play a dama game against another player, an ai or\
          let two ai play',
         epilog="Choose your game!")
+    parser.add_argument('--f', type=str, help="saving file for tests")
+    parser.add_argument('--w', nargs=8, type=float, help="sets ai weights")
     parser.add_argument("--white_depth", type=int, help="sets white ai depth")
     parser.add_argument("--black_depth", type=int, help="sets black ai depth")
 
     args = parser.parse_args()
+
+    set_weights(args.w)
 
     # initialize the board
     board = [[EMPTY for c in range(SIZE)] for r in range(SIZE)]
@@ -109,6 +126,7 @@ def main():
     start_board(board)
     print_board(board)
 
+    # sets the turns
     if args.white_depth == 0 or args.white_depth:
         first_turn = ia_turn
         first_args = WHITE, args.white_depth, board
@@ -125,6 +143,8 @@ def main():
 
     # min game loop
     while True:
+        # every turn returns if an eat move is performed, the actual color
+        # and a flag that warn if there is a winner
         eat_m, c, end = execute_turn(first_turn, first_args)
         if game_over(eat_m, c, end):
             break
@@ -133,7 +153,7 @@ def main():
         if game_over(eat_m, c, end):
             break
 
-    # stats
+    stats
     w_avg = np.average(white_times)
     b_avg = np.average(black_times)
     w_max = np.max(white_times)
@@ -155,9 +175,7 @@ def main():
         b_res = "Win"
         res = "BLACK"
 
-    # print("COLOR AVG_TIME MAX_TIME MIN_TIME DEPTH RESULT")
-    # print("DEPTH_W DEPTH_B TIME RESULT")
-    with open('tests01.txt', 'a') as f:
+    with open(args.f, 'a') as f:
         f.write("WHITE {:.3f} {} {} {} {}\n".format(w_avg, w_max, w_min,
             args.white_depth, w_res))
         f.write("BLACK {:.3f} {} {} {} {}\n".format(b_avg, b_max, b_min,
