@@ -1,25 +1,16 @@
 #!/usr/bin/env python3
 
-import random
-import time
-import functools
+import argparse
 from moves import *
 from ia_dama import ia_turn
+
 
 draw_white = 0
 draw_black = 0
 
-def timer(func):
-    """Print the runtime of the decorated function"""
-    @functools.wraps(func)
-    def wrapper_timer(*args, **kwargs):
-        start_time = time.perf_counter()  # 1
-        value = func(*args, **kwargs)
-        end_time = time.perf_counter()  # 2
-        run_time = end_time - start_time  # 3
-        print(f"Finished {func.__name__!r} in {run_time:.4f} secs")
-        return value
-    return wrapper_timer()
+white_times = []
+black_times = []
+
 
 # starting board
 def start_board(board):
@@ -36,6 +27,7 @@ def start_board(board):
             elif c % 2 != 0 and r % 2 != 0:
                     board[r][c] = WHITE
 
+
 def increment_draw(color):
     global draw_white, draw_black
 
@@ -46,6 +38,7 @@ def increment_draw(color):
         draw_black += 1
         return draw_black
 
+
 def reset_draw(color):
     global draw_white, draw_black
 
@@ -54,6 +47,10 @@ def reset_draw(color):
     else:
         draw_black = 0
 
+
+# check if the game loop needs to stop
+# it occur when a player wins or 40 moves without a eat move is performed.
+# if an eat move is performed then reset the counter, else increment it
 def game_over(eat_move, color, end):
     winner = "Whites"
     if color == BLACK:
@@ -72,66 +69,54 @@ def game_over(eat_move, color, end):
 
     return False
 
-def ask_color():
-    while True:
-        try:
-            c = input("Choose your color:\033[91m w\033[0m / \033[94m b \033[0m\n").lower()
-        except ValueError:
-            print("Wrong input, correct usage: <string>")
-            continue
-        else:
-            if c == "w" or c == "b":
-                return c
-            print("Wrong input, correct usage: w/b")
-            continue
 
-def is_player_first(c):
-    if c == "w":
-        # player choose white, first move to perform
-        return True
-    else:
-        return False
+def execute_turn(fun, args):
+    return fun(*args)
 
-@timer
+
 def main():
+    parser = argparse.ArgumentParser()
+
+    parser = argparse.ArgumentParser(
+        description='Play a dama game against another player, an ai or\
+         let two ai play',
+        epilog="Choose your game!")
+    parser.add_argument("--white_depth", type=int, help="sets white ai depth")
+    parser.add_argument("--black_depth", type=int, help="sets black ai depth")
+
+    args = parser.parse_args()
+
     # initialize the board
     board = [[EMPTY for c in range(SIZE)] for r in range(SIZE)]
 
     start_board(board)
     print_board(board)
 
-#     # ask color to the player
-#     color = ask_color()
+    # sets the turns
+    if args.white_depth == 0 or args.white_depth:
+        first_turn = ia_turn
+        first_args = WHITE, args.white_depth, board
+    else:
+        first_turn = human_turn
+        first_args = WHITE, board
 
-# # game main loop
-#     if is_player_first(color):
-#         while True:
-#             e_m, c, end = human_turn(WHITE, board)
-#             if game_over(e_m, WHITE, end):
-#                 break
+    if args.black_depth == 0 or args.black_depth:
+        second_turn = ia_turn
+        second_args = BLACK, args.black_depth, board
+    else:
+        second_turn = human_turn
+        second_args = BLACK, board
 
-#             e_m, c, end = ia_turn(BLACK, board)
-#             if game_over(e_m, c, end):
-#                 break
-#     else:
-#         while True:
-#             e_m, c, end = ia_turn(WHITE, board)
-#             if game_over(e_m, c, end):
-#                 break
-
-#             e_m, c, end = human_turn(BLACK, board)
-#             if game_over(e_m, BLACK, end):
-#                 break
-
-    # test loop
-    # TO REMOVE
+    # min game loop
     while True:
-        e_m, c, end = ia_turn(WHITE, board)
-        if game_over(e_m, c, end):
+        # every turn returns if an eat move is performed, the actual color
+        # and a flag that warn if there is a winner
+        eat_m, c, end = execute_turn(first_turn, first_args)
+        if game_over(eat_m, c, end):
             break
 
-        e_m, c, end = ia_turn(BLACK, board)
-        if game_over(e_m, c, end):
+        eat_m, c, end = execute_turn(second_turn, second_args)
+        if game_over(eat_m, c, end):
             break
 
 
