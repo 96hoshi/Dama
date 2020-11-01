@@ -1,10 +1,18 @@
 #!/usr/bin/env python3
 
+import argparse
 import numpy as np
 import matplotlib.pyplot as plt
 
 MIN_SIZE = 0
-MAX_SIZE = 7
+
+parser = argparse.ArgumentParser()
+parser.add_argument('filename')
+parser.add_argument('size')
+args = parser.parse_args()
+
+MAX_SIZE = int(args.size) + 1
+
 
 def translate_res(string):
     if string == "Win":
@@ -14,24 +22,28 @@ def translate_res(string):
     else:
         return 2
 
-def get_wins_per(c):
-    wins_percent = []
+
+def get_res_percent(color, res):
+    res_percent = []
 
     for i in range(MIN_SIZE, MAX_SIZE):
-        wins = []
+        result = []
         for j in range(MIN_SIZE, MAX_SIZE):
-            total = np.sum(results[c][i][j])
-            if total == 0:  w = 0
-            else: w = (results[c][i][j][0] / total) * 100
-            wins.append(int(w))
-        wins_percent.append(wins)
-    return wins_percent
+            total = np.sum(results[color][i][j])
+            if total == 0:
+                w = 0
+            else:
+                w = (results[color][i][j][res] / total) * 100
+            result.append(int(w))
+        res_percent.append(result)
+    return res_percent
+
 
 blacks = []
 whites = []
 games = []
 
-with open('tests00.txt', 'r') as f:
+with open(args.filename, 'r') as f:
     for line in f:
         strings = line.split()
         e0 = strings[0]
@@ -54,15 +66,9 @@ with open('tests00.txt', 'r') as f:
             else:
                 blacks.append(record)
 
-# 0.WHITE 1.AVG_TIME 2.MAX_TIME 3.MIN_TIME 4.DEPTH 5.RESULT
-for elem in whites:
-    print(elem)
-# BLACK AVG_TIME MAX_TIME MIN_TIME DEPTH RESULT
-for elem in blacks:
-    print(elem)
-# 0.GAME 1.DEPTH_W 2.DEPTH_B 3.TIME 4.RESULT
-for elem in games:
-    print(elem)
+# # 0.WHITE 1.AVG_TIME 2.MAX_TIME 3.MIN_TIME 4.DEPTH 5.RESULT
+# # BLACK AVG_TIME MAX_TIME MIN_TIME DEPTH RESULT
+# # 0.GAME 1.DEPTH_W 2.DEPTH_B 3.TIME 4.RESULT
 
 depths = []
 for i in range(MIN_SIZE, MAX_SIZE):
@@ -83,24 +89,26 @@ for i in range(0, n_games):
 
 # TIME PER DEPTH
 time_depths = []
-# remove outliners
+# remove outliaers
 for i in range(MIN_SIZE, MAX_SIZE):
     depths[i].remove(np.max(depths[i]))
     depths[i].remove(np.min(depths[i]))
-    time_depths.append(np.median(depths[i]))
+    time_depths.append(np.median(depths[i]) / 1e6)
 
-plt.plot(time_depths)
+print(time_depths)
+
+plt.plot(time_depths, marker="o")
 plt.xlabel('depth')
-# plt.xlim(0, 6)
-plt.ylabel('time (nsec)')
+plt.ylabel('time (msec)')
 plt.yscale('log')
+plt.ylim(1e-1, 1e4)
 plt.savefig('plots/time-per-depth.png')
 
 # RESULTS PERCENTAGE PER DEPTH
 results = []
 
-# result[0] è WHITE
-# result[1] è BLACK
+# result[0] is WHITE
+# result[1] is BLACK
 
 # results[color][depth][depth_enemy][result]
 for i in range(0, 2):
@@ -122,56 +130,59 @@ for i in range(0, len(games)):
     results[0][elem[1]][elem[2]][res_w] += 1
     results[1][elem[2]][elem[1]][res_b] += 1
 
-white_wins = get_wins_per(0)
-black_wins = get_wins_per(1)
+white_wins = get_res_percent(0, 0)
+black_wins = get_res_percent(1, 0)
 
+white_loses = get_res_percent(0, 1)
+black_loses = get_res_percent(1, 1)
+
+white_draws = get_res_percent(0, 2)
+black_draws = get_res_percent(1, 2)
+
+
+n_test = len(games) / (MAX_SIZE * MAX_SIZE)
+
+# print all results
+print("TEST: {} games played, {} per type, Max depth: {}".format(len(games), int(n_test), MAX_SIZE-1))
+print("     ", end="")
 for i in range(MIN_SIZE, MAX_SIZE):
-    print(i, white_wins[i])
-print("-"*40)
-trans_black_wins = np.transpose(black_wins)
+    print("{:^15}|".format(str(i)), end="")
+print()
+print("     ", end="")
 for i in range(MIN_SIZE, MAX_SIZE):
-    print(i, black_wins[i])
+    print(" {:3}  {:3} |".format("  W", "  D"), end="")
+print()
+for i in range(MIN_SIZE, MAX_SIZE):
+    print("{:3}: ".format(i), end= "")
+    for j in range(MIN_SIZE, MAX_SIZE):
+        print(" {:3}, {:3} |".format(white_wins[i][j], white_draws[i][j]), end="")
+    print()
+print("-"*85)
+for i in range(MIN_SIZE, MAX_SIZE):
+    print("{:3}: ".format(i), end= "")
+    for j in range(MIN_SIZE, MAX_SIZE):
+        print(" {:3}, {:3} |".format( black_wins[i][j], black_draws[i][j]), end="")
+    print("")
 
-
-# column_headers = [0, 1, 2, 3, 4]
-# row_headers = [" 0 ", " 1 ", " 2 ", " 3 ", " 4 "]
-# rcolors = plt.cm.BuPu(np.full(len(row_headers), 0.1))
-# ccolors = plt.cm.BuPu(np.full(len(column_headers), 0.1))
-
-# plt.figure(linewidth=3,
-#            tight_layout={'pad':1},
-#            figsize=(5,3)
-#           )
-
-# the_table = plt.table(cellText=white_wins,
-#                       rowLabels=row_headers,
-#                       rowColours=rcolors,
-#                       rowLoc='right',
-#                       colLabels=column_headers,
-#                       colColours=ccolors,
-#                       loc='center',
-#                       cellLoc='center')
-
-# # Scaling is the only influence we have over top and bottom cell padding.
-# # Make the rows taller (i.e., make cell y scale larger).
-# the_table.scale(0.8, 1.4)
-
-# # Hide axes
-# ax = plt.gca()
-# ax.get_xaxis().set_visible(False)
-# ax.get_yaxis().set_visible(False)
-
-# # Hide axes border
-# plt.box(on=None)
-
-# # Add title
-# plt.suptitle("White's win Percentage per depth")
-
-# # Force the figure to update, so backends center objects correctly within the figure.
-# # Without plt.draw() here, the title will center on the axes and not the figure.
-# plt.draw()
-
-# # Create image. plt.savefig ignores figure edge and face colors, so map them.
-# fig = plt.gcf()
-# # plt.show()
-# plt.savefig('plots/win-percentage.png')
+# print draw and win results
+# print("TEST: {} games played, {} per type, Max depth: {}".format(len(games), int(n_test), MAX_SIZE-1))
+# print("     ", end="")
+# for i in range(MIN_SIZE, MAX_SIZE):
+#     print("{:^15}|".format(str(i)), end="")
+# print()
+# print("     ", end="")
+# for i in range(MIN_SIZE, MAX_SIZE):
+#     print(" {:3}  {:3}  {:3} |".format("  W", "  L", "  D"), end="")
+# print()
+# for i in range(MIN_SIZE, MAX_SIZE):
+#     print("{:3}: ".format(i), end= "")
+#     for j in range(MIN_SIZE, MAX_SIZE):
+#         print(" {:3}, {:3}, {:3} |".format(white_wins[i][j], white_loses[i][j], white_draws[i][j]), end="")
+#     print()
+# print("-"*85)
+# for i in range(MIN_SIZE, MAX_SIZE):
+#     print("{:3}: ".format(i), end= "")
+#     for j in range(MIN_SIZE, MAX_SIZE):
+#         print(" {:3}, {:3}, {:3} |".format( black_wins[i][j], black_loses[i][j], black_draws[i][j]), end="")
+#     print("")
+# print()
