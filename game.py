@@ -1,60 +1,40 @@
 #!/usr/bin/env python3
 
+import random
 import time
 import functools
-import argparse
 from moves import *
-from ia_dama import ia_turn, set_weights
-import numpy as np
-
+from ia_dama import ia_turn
 
 draw_white = 0
 draw_black = 0
 
-white_times = []
-black_times = []
-
-we1 = 5
-we2 = 8
-we3 = 4
-we4 = 2.5
-we5 = 0.5
-we6 = -3
-we7 = 3
-we8 = 0.65
-
-
-def test_timer(func):
-
+def timer(func):
+    """Print the runtime of the decorated function"""
+    @functools.wraps(func)
     def wrapper_timer(*args, **kwargs):
-        start_time = time.perf_counter_ns()
+        start_time = time.perf_counter()  # 1
         value = func(*args, **kwargs)
-        end_time = time.perf_counter_ns()
-        run_time = end_time - start_time
-
-        if args[1][0] == WHITE:
-            white_times.append(run_time)
-        else:
-            black_times.append(run_time)
+        end_time = time.perf_counter()  # 2
+        run_time = end_time - start_time  # 3
+        print(f"Finished {func.__name__!r} in {run_time:.4f} secs")
         return value
-    return wrapper_timer
+    return wrapper_timer()
 
-
-# set the board with the initial configuration
+# starting board
 def start_board(board):
     for c in range(SIZE):
         for r in range(3):
             if c % 2 == 0 and r % 2 == 0:
                 board[r][c] = BLACK
             elif c % 2 != 0 and r % 2 != 0:
-                board[r][c] = BLACK
+                    board[r][c] = BLACK
 
         for r in range(5, SIZE):
             if c % 2 == 0 and r % 2 == 0:
                 board[r][c] = WHITE
             elif c % 2 != 0 and r % 2 != 0:
-                board[r][c] = WHITE
-
+                    board[r][c] = WHITE
 
 def increment_draw(color):
     global draw_white, draw_black
@@ -66,7 +46,6 @@ def increment_draw(color):
         draw_black += 1
         return draw_black
 
-
 def reset_draw(color):
     global draw_white, draw_black
 
@@ -75,18 +54,14 @@ def reset_draw(color):
     else:
         draw_black = 0
 
-
-# check if the game loop needs to stop
-# it occur when a player wins or 40 moves without a eat move are performed.
-# if an eat move is performed then reset the counter, else increment it
 def game_over(eat_move, color, end):
+    winner = "Whites"
+    if color == BLACK:
+        winner = "Blacks"
+
     if end:
-        winner = "Whites"
-        if color == BLACK:
-            winner = "Blacks"
         print(winner + " win!")
         return True
-
     if eat_move:
         reset_draw(color)
     else:
@@ -97,91 +72,68 @@ def game_over(eat_move, color, end):
 
     return False
 
+def ask_color():
+    while True:
+        try:
+            c = input("Choose your color:\033[91m w\033[0m / \033[94m b \033[0m\n").lower()
+        except ValueError:
+            print("Wrong input, correct usage: <string>")
+            continue
+        else:
+            if c == "w" or c == "b":
+                return c
+            print("Wrong input, correct usage: w/b")
+            continue
 
-# wrapper to call teh correct function with the corrects arguments
-@test_timer
-def execute_turn(fun, args):
-    return fun(*args)
+def is_player_first(c):
+    if c == "w":
+        # player choose white, first move to perform
+        return True
+    else:
+        return False
 
-
+@timer
 def main():
-    parser = argparse.ArgumentParser()
-
-    parser = argparse.ArgumentParser(
-        description='Play a dama game against another player, an ai or\
-         let two ai play',
-        epilog="Choose your game!")
-    parser.add_argument('--f', type=str, help="saving file for tests")
-    parser.add_argument('--w', nargs=8, type=float, help="sets ai weights")
-    parser.add_argument("--white_depth", type=int, help="sets white ai depth")
-    parser.add_argument("--black_depth", type=int, help="sets black ai depth")
-
-    args = parser.parse_args()
-
-    set_weights(args.w)
-
     # initialize the board
     board = [[EMPTY for c in range(SIZE)] for r in range(SIZE)]
 
     start_board(board)
     print_board(board)
 
-    # sets the turns
-    if args.white_depth == 0 or args.white_depth:
-        first_turn = ia_turn
-        first_args = WHITE, args.white_depth, board
-    else:
-        first_turn = human_turn
-        first_args = WHITE, board
+#     # ask color to the player
+#     color = ask_color()
 
-    if args.black_depth == 0 or args.black_depth:
-        second_turn = ia_turn
-        second_args = BLACK, args.black_depth, board
-    else:
-        second_turn = human_turn
-        second_args = BLACK, board
+# # game main loop
+#     if is_player_first(color):
+#         while True:
+#             e_m, c, end = human_turn(WHITE, board)
+#             if game_over(e_m, WHITE, end):
+#                 break
 
-    # min game loop
+#             e_m, c, end = ia_turn(BLACK, board)
+#             if game_over(e_m, c, end):
+#                 break
+#     else:
+#         while True:
+#             e_m, c, end = ia_turn(WHITE, board)
+#             if game_over(e_m, c, end):
+#                 break
+
+#             e_m, c, end = human_turn(BLACK, board)
+#             if game_over(e_m, BLACK, end):
+#                 break
+
+    # test loop
+    # TO REMOVE
     while True:
-        # every turn returns if an eat move is performed, the actual color
-        # and a flag that warn if there is a winner
-        eat_m, c, end = execute_turn(first_turn, first_args)
-        if game_over(eat_m, c, end):
+        e_m, c, end = ia_turn(WHITE, board)
+        if game_over(e_m, c, end):
             break
 
-        eat_m, c, end = execute_turn(second_turn, second_args)
-        if game_over(eat_m, c, end):
+        e_m, c, end = ia_turn(BLACK, board)
+        if game_over(e_m, c, end):
             break
 
-    stats
-    w_avg = np.average(white_times)
-    b_avg = np.average(black_times)
-    w_max = np.max(white_times)
-    b_max = np.max(black_times)
-    w_min = np.min(white_times)
-    b_min = np.min(black_times)
-    time = sum(white_times) + sum(black_times)
-
-    if draw_white == 40 or draw_black == 40:
-        w_res = "Draw"
-        b_res = "Draw"
-        res = "DRAW"
-    elif c == WHITE:
-        w_res = "Win"
-        b_res = "Lose"
-        res = "WHITE"
-    else:
-        w_res = "Lose"
-        b_res = "Win"
-        res = "BLACK"
-
-    with open(args.f, 'a') as f:
-        f.write("WHITE {:.3f} {} {} {} {}\n".format(w_avg, w_max, w_min,
-            args.white_depth, w_res))
-        f.write("BLACK {:.3f} {} {} {} {}\n".format(b_avg, b_max, b_min,
-            args.black_depth, b_res))
-        f.write("GAME {} {} {} {}\n".format(args.white_depth,
-            args.black_depth, time, res))
 
 if __name__ == "__main__":
     main()
