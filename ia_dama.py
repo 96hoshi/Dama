@@ -82,7 +82,7 @@ def mid_box(i, j, color):
     return 0
 
 
-# returns 1 if there is a black piece in the middle 2 rowsin 
+# returns 1 if there is a black piece in the middle 2 rowsin
 # but not in the middle 4 columns, -1 if it's white
 def mid_row(i, j, color):
     if i in range(2, 4):
@@ -92,6 +92,7 @@ def mid_row(i, j, color):
             else:
                 return -1
     return 0
+
 
 # returns 1 if the black piece at position (i, j) is vulnerable,
 # (will be eaten next turn), -1 if it's white
@@ -112,20 +113,28 @@ def vulnerable(i, j, board):
 
 # check if a pawn in (i, j) can be eaten
 def can_be_eaten(i, dir_i, j, dir_j, color, board):
-    if box_legal(i - dir_i, j - dir_j) and not color_check(i - dir_i, j - dir_j, color, board):
-        if box_legal(i + dir_i, j + dir_j) and board[i + dir_i][j + dir_j] == EMPTY:
-            if not is_dama(board[i][j]):
-                # I can be eaten
-                return True
-            elif is_dama(board[i - dir_i][j - dir_j]):
-                # If I'm a dama I still can be eaten by a dama
-                return True
+    if box_legal(i - dir_i, j - dir_j):
+        if not color_check(i - dir_i, j - dir_j, color, board):
 
-    # check in opposite direction if I can be eaten by a dama
-    if box_legal(i + dir_i, j + dir_j) and not color_check(i + dir_i, j + dir_j, color, board):
-        if is_dama(board[i + dir_i][j + dir_j]):
-            if box_legal(i - dir_i, j - dir_j) and board[i - dir_i][j - dir_j] == EMPTY:
-                return True
+            if box_legal(i + dir_i, j + dir_j):
+                if board[i + dir_i][j + dir_j] == EMPTY:
+
+                    if not is_dama(board[i][j]):
+                        # I can be eaten
+                        return True
+                    elif is_dama(board[i - dir_i][j - dir_j]):
+                        # If I'm a dama I still can be eaten by a dama
+                        return True
+
+        # check in opposite direction if I can be eaten by a dama
+        if box_legal(i + dir_i, j + dir_j):
+            if not color_check(i + dir_i, j + dir_j, color, board):
+
+                if is_dama(board[i + dir_i][j + dir_j]):
+
+                    if box_legal(i - dir_i, j - dir_j):
+                        if board[i - dir_i][j - dir_j] == EMPTY:
+                            return True
 
     return False
 
@@ -149,7 +158,7 @@ def protected(i, j, board):
     return 1 * (-dir_i)
 
 
-# returns the inverted sign of the number of box 
+# returns the inverted sign of the number of box
 # from the piece and the line to become a dama
 def promotion_distance(i, color):
     if color == BLACK:
@@ -209,7 +218,7 @@ def minmax(node, depth, maximizing_player, max_color, min_color):
                 perform_move(move, child)
                 v, _ = minmax(child, depth - 1, False, max_color, min_color)
                 if v > max_values[0][0]:
-                # update values
+                    # update values
                     max_values.clear()
                     max_values.append((v, move))
                 elif v == max_values[0][0]:
@@ -222,7 +231,7 @@ def minmax(node, depth, maximizing_player, max_color, min_color):
                 perform_move(move, child)
                 v, _ = minmax(child, depth - 1, False, max_color, min_color)
                 if v > max_values[0][0]:
-                # update values
+                    # update values
                     max_values.clear()
                     max_values.append((v, move))
                 elif v == max_values[0][0]:
@@ -241,7 +250,7 @@ def minmax(node, depth, maximizing_player, max_color, min_color):
                 perform_move(move, child)
                 v, _ = minmax(child, depth - 1, True, max_color, min_color)
                 if v < min_values[0][0]:
-                # update values
+                    # update values
                     min_values.clear()
                     min_values.append((v, move))
                 elif v == min_values[0][0]:
@@ -254,7 +263,7 @@ def minmax(node, depth, maximizing_player, max_color, min_color):
                 perform_move(move, child)
                 v, _ = minmax(child, depth - 1, True, max_color, min_color)
                 if v < min_values[0][0]:
-                # update values
+                    # update values
                     min_values.clear()
                     min_values.append((v, move))
                 elif v == min_values[0][0]:
@@ -299,4 +308,3 @@ def ia_turn(player_color, max_depth, board):
     print_board(board)
 
     return eat_move, player_color, is_player_winner(player_color, board)
-
