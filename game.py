@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 
 import time
-import functools
 import argparse
 from moves import *
 from ia_dama import ia_turn, set_weights
@@ -77,7 +76,7 @@ def reset_draw(color):
 
 
 # check if the game loop needs to stop
-# it occur when a player wins or 40 moves without a eat move are performed.
+# it occur when a player wins or 40 moves without a eat move is performed.
 # if an eat move is performed then reset the counter, else increment it
 def game_over(eat_move, color, end):
     if end:
@@ -98,7 +97,7 @@ def game_over(eat_move, color, end):
     return False
 
 
-# wrapper to call teh correct function with the corrects arguments
+# wrapper to call the correct function with the corrects arguments
 @test_timer
 def execute_turn(fun, args):
     return fun(*args)
@@ -153,7 +152,7 @@ def main():
         if game_over(eat_m, c, end):
             break
 
-    stats
+    # stats
     w_avg = np.average(white_times)
     b_avg = np.average(black_times)
     w_max = np.max(white_times)
@@ -177,11 +176,12 @@ def main():
 
     with open(args.f, 'a') as f:
         f.write("WHITE {:.3f} {} {} {} {}\n".format(w_avg, w_max, w_min,
-            args.white_depth, w_res))
+                                                    args.white_depth, w_res))
         f.write("BLACK {:.3f} {} {} {} {}\n".format(b_avg, b_max, b_min,
-            args.black_depth, b_res))
+                                                    args.black_depth, b_res))
         f.write("GAME {} {} {} {}\n".format(args.white_depth,
-            args.black_depth, time, res))
+                                            args.black_depth, time, res))
+
 
 if __name__ == "__main__":
     main()
