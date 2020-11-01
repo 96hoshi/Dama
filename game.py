@@ -12,20 +12,20 @@ white_times = []
 black_times = []
 
 
-# set the board with the initial configuration
+# starting board
 def start_board(board):
     for c in range(SIZE):
         for r in range(3):
             if c % 2 == 0 and r % 2 == 0:
                 board[r][c] = BLACK
             elif c % 2 != 0 and r % 2 != 0:
-                board[r][c] = BLACK
+                    board[r][c] = BLACK
 
         for r in range(5, SIZE):
             if c % 2 == 0 and r % 2 == 0:
                 board[r][c] = WHITE
             elif c % 2 != 0 and r % 2 != 0:
-                board[r][c] = WHITE
+                    board[r][c] = WHITE
 
 
 def increment_draw(color):
@@ -52,13 +52,13 @@ def reset_draw(color):
 # it occur when a player wins or 40 moves without a eat move is performed.
 # if an eat move is performed then reset the counter, else increment it
 def game_over(eat_move, color, end):
+    winner = "Whites"
+    if color == BLACK:
+        winner = "Blacks"
+
     if end:
-        winner = "Whites"
-        if color == BLACK:
-            winner = "Blacks"
         print(winner + " win!")
         return True
-
     if eat_move:
         reset_draw(color)
     else:
