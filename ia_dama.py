@@ -4,6 +4,7 @@ import math
 import random
 from moves import *
 
+
 we1 = 5
 we2 = 8
 we3 = 4
@@ -12,19 +13,6 @@ we5 = 0.5
 we6 = -3
 we7 = 3
 we8 = 0.65
-
-
-def set_weights(w):
-    global we1, we2, we3, we4, we5, we6, we7, we8
-
-    we1 = w[0]
-    we2 = w[1]
-    we3 = w[2]
-    we4 = w[3]
-    we5 = w[4]
-    we6 = w[5]
-    we7 = w[6]
-    we8 = w[7]
 
 
 # perform and update the game board
