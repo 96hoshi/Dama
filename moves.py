@@ -55,6 +55,7 @@ def print_movement(m, color):
 
 # --------------------utilities------------------------------
 
+
 # check if the pawn is inside the board
 def box_legal(i, j):
     return i in range(SIZE) and j in range(SIZE)
@@ -123,16 +124,19 @@ def is_only_color(color, board):
 
 # check if is possible to eat at least a pawn from a position (i, j)
 def can_eat(i, dir_i, j, dir_j, color, board):
-    if box_legal(i + dir_i, j + dir_j) and board[i + dir_i][j + dir_j] != EMPTY:
-        if not color_check(i + dir_i, j + dir_j, color, board):
-            if box_legal(i + dir_i * 2, j + dir_j * 2) and board[i + dir_i * 2][j + dir_j * 2] == EMPTY:
-
-                if not is_dama(board[i + dir_i][j + dir_j]):
-                    # I can eat
-                    return True
-                elif is_dama(board[i][j]):
-                    # I can eat a dama if I'm a dama
-                    return True
+    if box_legal(i + dir_i, j + dir_j):
+        if board[i + dir_i][j + dir_j] != EMPTY:
+            # check if there is a box with a piece
+            if not color_check(i + dir_i, j + dir_j, color, board):
+                if box_legal(i + dir_i * 2, j + dir_j * 2):
+                    if board[i + dir_i * 2][j + dir_j * 2] == EMPTY:
+                        # check if is possible to perform a eat move
+                        if not is_dama(board[i + dir_i][j + dir_j]):
+                            # it's a simple pawn, I can eat
+                            return True
+                        elif is_dama(board[i][j]):
+                            # I can eat a dama if I'm a dama
+                            return True
     return False
 
 
@@ -143,7 +147,7 @@ def has_player_moves(color, board):
         for j in range(SIZE):
             if board[i][j] is not EMPTY:
                 if color_check(i, j, color, board):
-                    # if the enemy can do a movement then it's not a win condition
+                    # if the enemy can do a movement then it's not a win
                     if legal_moves(i, j, board):
                         return True
 
@@ -389,42 +393,51 @@ def board_forced_moves(color, board):
     for i in range(SIZE):
         for j in range(SIZE):
             if color_check(i, j, color, board):
-                calculate_forced_moves(i, j, color, [(i, j)], [], is_dama(board[i][j]), board)
+                calculate_forced_moves(
+                    i, j, color, [(i, j)], [], is_dama(board[i][j]), board)
 
     return max_paths
 
 
 # check recursively if an eat move can be performed in a direction
 # editing and saving the path
-def check_direction(i, dir_i, j, dir_j, color, path, eaten, dama, board):
-    if box_legal(i + dir_i, j + dir_j) and board[i + dir_i][j + dir_j] != EMPTY:
-        # if the box is occupied by the enemy
-        if not color_check(i + dir_i, j + dir_j, color, board):
-            # if the box after is empty
-            if box_legal(i + dir_i * 2, j + dir_j * 2) and board[i + dir_i*2][j + dir_j * 2] == EMPTY:
-                # it's not a dama
-                if not is_dama(board[i + dir_i][j + dir_j]):
-                    # a pawn is eaten
-                    new_eaten = copy_new_eaten(eaten, "p")
-                    new_path = copy_new_path(path, (i + dir_i * 2, j + dir_j * 2))
-                    # copy of the new board with move performed
-                    new_board = copy_new_board(i, j, i + dir_i * 2, j + dir_j * 2, board)
-                    calculate_forced_moves(i + dir_i * 2, j + dir_j * 2, color, new_path, new_eaten, dama, new_board)
-                    return False
-                # if it's a dama and I'm a dama too
-                elif dama:
-                    # a dama was eaten
-                    new_eaten = copy_new_eaten(eaten, "d")
-                    new_path = copy_new_path(path, (i + dir_i * 2, j + dir_j * 2))
-                    new_board = copy_new_board(i, j, i + dir_i * 2, j + dir_j * 2, board)
-                    calculate_forced_moves(i + dir_i * 2, j + dir_j * 2, color, new_path, new_eaten, dama, new_board)
-                    return False
+def check_direction(i, dir_i, j, dir_j, c, path, eaten, dama, board):
+    if box_legal(i + dir_i, j + dir_j):
+        if board[i + dir_i][j + dir_j] != EMPTY:
+            # if the box is occupied by the enemy
+            if not color_check(i + dir_i, j + dir_j, c, board):
+                # if the box after is empty
+                if box_legal(i + dir_i * 2, j + dir_j * 2):
+                    if board[i + dir_i * 2][j + dir_j * 2] == EMPTY:
+                        # it's not a dama
+                        if not is_dama(board[i + dir_i][j + dir_j]):
+                            # a pawn is eaten
+                            n_e = copy_new_eaten(eaten, "p")
+                            n_p = copy_new_path(
+                                path, (i + dir_i * 2, j + dir_j * 2))
+                            # copy of the new board with move performed
+                            n_b = copy_new_board(
+                                i, j, i + dir_i * 2, j + dir_j * 2, board)
+                            calculate_forced_moves(
+                                i + dir_i * 2, j + dir_j * 2, c, n_p, n_e, dama, n_b)
+                            return False
+                        # if it's a dama and I'm a dama too
+                        elif dama:
+                            # a dama was eaten
+                            n_e = copy_new_eaten(eaten, "d")
+                            n_p = copy_new_path(
+                                path, (i + dir_i * 2, j + dir_j * 2))
+                            n_b = copy_new_board(
+                                i, j, i + dir_i * 2, j + dir_j * 2, board)
+                            calculate_forced_moves(
+                                i + dir_i * 2, j + dir_j * 2, c, n_p, n_e, dama, n_b)
+                            return False
 
     return True
 
 
 # check in all direction if a forced moved is possible form a position.
-# in the end register it 
+# in the end register it
 def calculate_forced_moves(i, j, color, path, eaten, dama, board):
     stop = True
     dir_i = 1
@@ -442,8 +455,10 @@ def calculate_forced_moves(i, j, color, path, eaten, dama, board):
     # if I'm a dama check the other two directions
     if dama:
         dir_i *= -1
-        stop = check_direction(i, dir_i, j, dx, color, path, eaten, dama, board)
-        stop = check_direction(i, dir_i, j, sx, color, path, eaten, dama, board)
+        stop = check_direction(i, dir_i, j, dx, color,
+                               path, eaten, dama, board)
+        stop = check_direction(i, dir_i, j, sx, color,
+                               path, eaten, dama, board)
 
     # add the move to the set
     if stop and len(path) > 1:
